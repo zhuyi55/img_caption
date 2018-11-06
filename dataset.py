@@ -21,9 +21,11 @@ def read_and_decode(filename_queue):
         'image/encoded': tf.FixedLenFeature([], tf.string),
         'image/label': tf.FixedLenFeature([], tf.string)
     })
-    image = tf.decode_raw(features['image/encoded'], tf.float32)
-    label = tf.decode_raw(features['image/label'], tf.int32)
+    image = tf.image.decode_jpeg(features['image/encoded'], channels=3)
+    image = tf.image.resize_images(image, [224, 224])
     image = tf.reshape(image, [1,224,224,3])
+    
+    label = tf.decode_raw(features['image/label'], tf.int32)
     label = tf.reshape(label, [1, -1])
 
     return image, label
