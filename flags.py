@@ -18,8 +18,8 @@ def parse_args(check=True):
     parser.add_argument('--text', type=str, default='QuanSongCi.txt',
                         help='path to QuanSongCi.txt')
 
-    parser.add_argument('--num_steps', type=int, default=64,
-                        help='number of time steps of one sample.')
+#    parser.add_argument('--num_steps', type=int, default=64,
+#                        help='number of time steps of one sample.')
 
     parser.add_argument('--batch_size', type=int, default=1,
                         help='batch size to use.')
@@ -51,7 +51,7 @@ def parse_args(check=True):
     parser.add_argument('--checkpoint_path', type=str, default='./data/vgg_16.ckpt')
     
 #    parser.add_argument('--output_dir', type=str)
-    parser.add_argument('--dataset_train', type=str, default='./flickr8k_train.record')
+    parser.add_argument('--dataset_train', type=str, default='./flickr8k_train_one.record')
     
     parser.add_argument('--dataset_val', type=str, default='flickr8k_val.record')
     

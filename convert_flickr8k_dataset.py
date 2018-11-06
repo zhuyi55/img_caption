@@ -22,7 +22,7 @@ flags = tf.app.flags
 flags.DEFINE_string('data_dir', '.', 'Root directory to raw pet dataset.')
 flags.DEFINE_string('output_dir', '.', 'Path to directory to output TFRecords.')
 flags.DEFINE_string('json_dictionary', './dictionary.json', 'The dictionary transfer words to index')
-flags.DEFINE_string('label_length', 32, 'Max label length for image label.')
+#flags.DEFINE_string('label_length', 32, 'Max label length for image label.')
 
 FLAGS = flags.FLAGS
 
@@ -124,10 +124,6 @@ def read_token_files(root):
             line = each.split('\t')
             data.append('%s/data_Flickr8k/Flickr8k_Dataset/%s' % (root, line[0][:-2]))
             label.append(line[1][:-1])
-            
-            label_len = len(line[1][:-1].split())
-            while label_len > FLAGS.label_length:
-                FLAGS.label_length = FLAGS.label_length * 2
 
     return list(zip(data, label))
 
@@ -154,9 +150,10 @@ def index_data(label):
         dictionary = json.load(inf, encoding='utf-8')
 
         words = label.split()
-#        shape = words.shape
-#        words = words.reshape([-1])
-        index = [dictionary['UNK']] * FLAGS.label_length
+        if (words[-1] != '.'):
+            words.append('.')
+            
+        index = [dictionary['UNK']] * len(words)
         for i in range(len(words)):
             try:
                 index[i] = dictionary[words[i]]
@@ -166,9 +163,6 @@ def index_data(label):
         return np.array(index)
     
     return None
-
-#        return index.reshape(shape)
-
 
 def main(_):
     logging.info('Prepare dataset file names')

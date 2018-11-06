@@ -74,6 +74,7 @@ with tf.variable_scope('embedding'):
     data_x0 = tf.reshape(cnn_logits, [1, 1, FLAGS.dim_embedding])
 
     rnn_Y = label_tensor
+    label_shape = tf.shape(label_tensor)
     
     concat_Data = tf.concat([data, data_x0], 1)
     _, rnn_X = tf.split(concat_Data, [1, -1], 1)
@@ -93,8 +94,7 @@ with tf.variable_scope('rnn'):
         W_o = tf.get_variable('W_o', [FLAGS.dim_embedding, FLAGS.num_words], initializer=tf.random_normal_initializer(stddev=0.01))
         b_o = tf.get_variable('b_o', [FLAGS.num_words], initializer=tf.constant_initializer(0.0))
         
-        rnn_logits = tf.reshape(tf.matmul(seq_output_final, W_o) + b_o, 
-                            [-1, FLAGS.num_steps, FLAGS.num_words])
+        rnn_logits = tf.reshape(tf.matmul(seq_output_final, W_o) + b_o, [-1, label_shape[1], FLAGS.num_words])
         
     tf.summary.histogram('rnn_logits', rnn_logits)
     
@@ -255,10 +255,12 @@ with sess:
 
     start = time.time()
     for i in range(FLAGS.max_steps):
-        gs, _, state, l, summary_string = sess.run(
-            [global_step, optimizer, state_tensor, loss, merged_summary_op], feed_dict=feed_dict_to_use)
+        gs, _, state, l, summary_string, lista, listb = sess.run(
+            [global_step, optimizer, state_tensor, loss, merged_summary_op, image_tensor, label_tensor], feed_dict=feed_dict_to_use)
         summary_string_writer.add_summary(summary_string, gs)
 
+        print (lista)
+        print (listb)
         if gs % 1 == 0:
             logging.debug('step [{0}] loss [{1}]'.format(gs, l))
         if gs % 5 == 0:
