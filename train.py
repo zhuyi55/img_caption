@@ -31,14 +31,7 @@ image_tensor, label_tensor = tf.cond(is_training_placeholder,
                                                            true_fn=lambda: (image_tensor_train, label_tensor_train),
                                                            false_fn=lambda: (image_tensor_val, label_tensor_val))
 
-#image_tensor, orig_img_tensor, label_tensor = inputs(FLAGS.dataset_train, train=True, batch_size=batch_size, num_epochs=1e4)
-
-##filename_queue = tf.train.string_input_producer([FLAGS.dataset_train], num_epochs=1e4)
-##test_tensor, label_tensor = read_and_decode(filename_queue)
-
 feed_dict_to_use = {is_training_placeholder: True}
-
-number_of_classes = 128
 
 log_folder = FLAGS.output_dir
 #log_folder = os.path.join(FLAGS.output_dir, 'train')
@@ -52,18 +45,17 @@ global_step = tf.Variable(0, trainable=False, name='global_step', dtype=tf.int64
 # Define the model that we want to use -- specify to use only two classes at the last layer
 with slim.arg_scope(vgg.vgg_arg_scope()):
     cnn_logits, end_points = vgg.vgg_16(image_tensor,
-                                    num_classes=number_of_classes,
+                                    num_classes=FLAGS.dim_embedding,
                                     is_training=is_training_placeholder,
                                     spatial_squeeze=False,
                                     fc_conv_padding='VALID')
 
 logits_shape = tf.shape(cnn_logits)
 
-img_shape = tf.shape(image_tensor)
+#img_shape = tf.shape(image_tensor)
 
 ##model = Model(learning_rate=FLAGS.learning_rate, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps)
 ##model.build(FLAGS.embedding_file)
-
 
 with tf.variable_scope('embedding'):
     if FLAGS.embedding_file:
@@ -81,8 +73,8 @@ with tf.variable_scope('embedding'):
 
     data_x0 = tf.reshape(cnn_logits, [1, 1, FLAGS.dim_embedding])
 
-    #testb = tf.get_variable('test_b', shape=[1, 1, 128])
     rnn_Y = label_tensor
+    
     concat_Data = tf.concat([data, data_x0], 1)
     _, rnn_X = tf.split(concat_Data, [1, -1], 1)
 
@@ -94,45 +86,40 @@ with tf.variable_scope('rnn'):
     state_tensor = mult_cell.zero_state(FLAGS.batch_size, tf.float32)
     seq_output, state_tensor = tf.nn.dynamic_rnn(mult_cell, rnn_X, initial_state=state_tensor)
 
-# flatten it
-seq_output_final = tf.reshape(seq_output, [-1, FLAGS.dim_embedding])
-
-with tf.variable_scope('softmax'):
-    W_o = tf.get_variable('W_o', [FLAGS.dim_embedding, FLAGS.num_words], initializer=tf.random_normal_initializer(stddev=0.01))
-    b_o = tf.get_variable('b_o', [FLAGS.num_words], initializer=tf.constant_initializer(0.0))
+    # flatten it
+    seq_output_final = tf.reshape(seq_output, [-1, FLAGS.dim_embedding])
     
-    rnn_logits = tf.reshape(tf.matmul(seq_output_final, W_o) + b_o, 
-                        [-1, FLAGS.num_steps, FLAGS.num_words])
+    with tf.variable_scope('softmax'):
+        W_o = tf.get_variable('W_o', [FLAGS.dim_embedding, FLAGS.num_words], initializer=tf.random_normal_initializer(stddev=0.01))
+        b_o = tf.get_variable('b_o', [FLAGS.num_words], initializer=tf.constant_initializer(0.0))
+        
+        rnn_logits = tf.reshape(tf.matmul(seq_output_final, W_o) + b_o, 
+                            [-1, FLAGS.num_steps, FLAGS.num_words])
+        
+    tf.summary.histogram('rnn_logits', rnn_logits)
     
-tf.summary.histogram('rnn_logits', rnn_logits)
+    predictions = tf.nn.softmax(rnn_logits, name='predictions')
+    
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=rnn_Y, logits = rnn_logits)
+    mean, var = tf.nn.moments(rnn_logits, -1)
+    loss = tf.reduce_mean(loss)
+    tf.summary.scalar('logits_loss', loss)
+    
+    var_loss = tf.divide(10.0, 1.0+tf.reduce_mean(var))
+    tf.summary.scalar('var_loss', var_loss)
+    # 把标准差作为loss添加到最终的loss里面，避免网络每次输出的语句都是机械的重复
+    loss = loss + var_loss
+    tf.summary.scalar('total_loss', loss)
 
-predictions = tf.nn.softmax(rnn_logits, name='predictions')
-
-loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=rnn_Y, logits = rnn_logits)
-mean, var = tf.nn.moments(rnn_logits, -1)
-loss = tf.reduce_mean(loss)
-tf.summary.scalar('logits_loss', loss)
-
-var_loss = tf.divide(10.0, 1.0+tf.reduce_mean(var))
-tf.summary.scalar('var_loss', var_loss)
-# 把标准差作为loss添加到最终的loss里面，避免网络每次输出的语句都是机械的重复
-loss = loss + var_loss
-tf.summary.scalar('total_loss', loss)
-
-# gradient clip
-tvars = tf.trainable_variables()
-grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars), 5)
-train_op = tf.train.AdamOptimizer(FLAGS.learning_rate)
-optimizer = train_op.apply_gradients(
-    zip(grads, tvars), global_step=global_step)
-
-tf.summary.scalar('loss', loss)
+with tf.variable_scope('adam_vars'):
+    # gradient clip
+    tvars = tf.trainable_variables()
+    grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars), 5)
+    train_op = tf.train.AdamOptimizer(FLAGS.learning_rate)
+    optimizer = train_op.apply_gradients(
+        zip(grads, tvars), global_step=global_step)
 
 merged_summary_op = tf.summary.merge_all()
-
-
-
-
 
 #lbl_onehot = tf.one_hot(annotation_tensor, number_of_classes)
 #cross_entropies = tf.nn.softmax_cross_entropy_with_logits(logits=logits,
@@ -185,16 +172,16 @@ merged_summary_op = tf.summary.merge_all()
 # which is responsible for class predictions. We do this because
 # we will have different number of classes to predict and we can't
 # use the old ones as an initialization.
-vgg_except_fc8_weights = slim.get_variables_to_restore(exclude=['vgg_16/fc8', 'adam_vars'])
+vgg_weights = slim.get_variables_to_restore(include=['vgg_16'], exclude=['vgg_16/fc8'])
 
 # Here we get variables that belong to the last layer of network.
 # As we saw, the number of classes that VGG was originally trained on
 # is different from ours -- in our case it is only 2 classes.
-vgg_fc8_weights = slim.get_variables_to_restore(include=['vgg_16/fc8'])
-
-vgg_weights = slim.get_variables_to_restore()
+#vgg_fc8_weights = slim.get_variables_to_restore(include=['vgg_16/fc8'])
 
 adam_optimizer_variables = slim.get_variables_to_restore(include=['adam_vars'])
+
+#rnn_weights = slim.get_variables_to_restore(include=['rnn'])
 
 # Add summary op for the loss -- to be able to see it in
 # tensorboard.
@@ -202,7 +189,7 @@ adam_optimizer_variables = slim.get_variables_to_restore(include=['adam_vars'])
 
 # Put all summary ops into one op. Produces string when
 # you run it.
-merged_summary_op = tf.summary.merge_all()
+#merged_summary_op = tf.summary.merge_all()
 
 # Create the summary writer -- to write all the logs
 # into a specified file. This file can be later read
@@ -224,15 +211,14 @@ if checkpoint_path:
     continue_train = True
 
 else:
-
     # Create an OP that performs the initialization of
     # values of variables to the values from VGG.
-    read_vgg_weights_except_fc8_func = slim.assign_from_checkpoint_fn(
+    read_vgg_weights_func = slim.assign_from_checkpoint_fn(
         vgg_checkpoint_path,
-        vgg_except_fc8_weights)
+        vgg_weights)
 
     # Initializer for new fc8 weights -- for two classes.
-    vgg_fc8_weights_initializer = tf.variables_initializer(vgg_fc8_weights)
+    #vgg_fc8_weights_initializer = tf.variables_initializer(vgg_fc8_weights)
 
     # Initializer for adam variables
     optimization_variables_initializer = tf.variables_initializer(adam_optimizer_variables)
@@ -257,10 +243,10 @@ with sess:
 
         logging.debug('checkpoint restored from [{0}]'.format(checkpoint_path))
     else:
-        sess.run(vgg_fc8_weights_initializer)
+        #sess.run(vgg_fc8_weights_initializer)
         sess.run(optimization_variables_initializer)
 
-        #read_vgg_weights_except_fc8_func(sess)
+        read_vgg_weights_func(sess)
         logging.debug('value initialized...')
 
     # start data reader
@@ -268,41 +254,16 @@ with sess:
     threads = tf.train.start_queue_runners(coord=coord)
 
     start = time.time()
-    #for i in range(FLAGS.max_steps):
-    for i in range(5):
-        print ('=====*** start running**** i=%d ====' % i)
-
+    for i in range(FLAGS.max_steps):
         gs, _, state, l, summary_string = sess.run(
             [global_step, optimizer, state_tensor, loss, merged_summary_op], feed_dict=feed_dict_to_use)
         summary_string_writer.add_summary(summary_string, gs)
 
-        #if gs % 100 == 0:
-        logging.debug('step [{0}] loss [{1}]'.format(gs, l))
-        if gs % 1000 == 0:
-            save_path = saver.save(sess, os.path.join(
-                FLAGS.output_dir, "model.ckpt"), global_step=gs)
-        
-        #temp1, temp2 = sess.run([optimizer, rnn_Y], feed_dict=feed_dict_to_use)
-        
-        #print (np.array(temp1).shape)
-        #print (np.array(temp2).shape)
-        
-        #gs, _, label = sess.run([global_step, train_step, annotation_tensor], feed_dict=feed_dict_to_use)
-        #label = sess.run([annotation_tensor], feed_dict=feed_dict_to_use)
-        #print ('******label =' % label)
-        
-        ##if gs % 10 == 0:
-        ##    gs, loss, summary_string = sess.run([global_step, cross_entropy_loss, merged_summary_op], feed_dict=feed_dict_to_use)
-        ##    logging.debug("step {0} Current Loss: {1} ".format(gs, loss))
-        ##    end = time.time()
-        ##    logging.debug("[{0:.2f}] imgs/s".format(10 * batch_size / (end - start)))
-        ##    start = end
-        ##
-        ##    summary_string_writer.add_summary(summary_string, i)
-        ##
-        ##    if gs % 100 == 0:
-        ##        save_path = saver.save(sess, os.path.join(log_folder, "model.ckpt"), global_step=gs)
-        ##        logging.debug("Model saved in file: %s" % save_path)
+        if gs % 1 == 0:
+            logging.debug('step [{0}] loss [{1}]'.format(gs, l))
+        if gs % 5 == 0:
+            save_path = saver.save(sess, os.path.join(FLAGS.output_dir, "model.ckpt"), global_step=gs)
+            logging.debug("Model saved in file: %s" % save_path)
 
     coord.request_stop()
     coord.join(threads)

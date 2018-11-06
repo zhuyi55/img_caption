@@ -10,6 +10,7 @@ import logging
 import os
 import random
 import re
+import json
 
 from lxml import etree
 import numpy as np
@@ -18,55 +19,37 @@ import tensorflow as tf
 
 
 flags = tf.app.flags
-flags.DEFINE_string('data_dir', '', 'Root directory to raw pet dataset.')
-flags.DEFINE_string('output_dir', '', 'Path to directory to output TFRecords.')
+flags.DEFINE_string('data_dir', '.', 'Root directory to raw pet dataset.')
+flags.DEFINE_string('output_dir', '.', 'Path to directory to output TFRecords.')
+flags.DEFINE_string('json_dictionary', './dictionary.json', 'The dictionary transfer words to index')
+flags.DEFINE_string('label_length', 32, 'Max label length for image label.')
 
 FLAGS = flags.FLAGS
 
-classes = ['background', 'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
-           'dog', 'horse', 'motorbike', 'person', 'potted plant',
-           'sheep', 'sofa', 'train', 'tv/monitor']
-# RGB color for each class
-colormap = [[0, 0, 0], [128, 0, 0], [0, 128, 0], [128, 128, 0], [0, 0, 128],
-            [128, 0, 128], [0, 128, 128], [
-                128, 128, 128], [64, 0, 0], [192, 0, 0],
-            [64, 128, 0], [192, 128, 0], [64, 0, 128], [192, 0, 128],
-            [64, 128, 128], [192, 128, 128], [0, 64, 0], [128, 64, 0],
-            [0, 192, 0], [128, 192, 0], [0, 64, 128]]
-
-
-cm2lbl = np.zeros(256**3)
-for i, cm in enumerate(colormap):
-    cm2lbl[(cm[0] * 256 + cm[1]) * 256 + cm[2]] = i
-
-
-def image2label(im):
-    data = im.astype('int32')
-    # cv2.imread. default channel layout is BGR
-    idx = (data[:, :, 2] * 256 + data[:, :, 1]) * 256 + data[:, :, 0]
-    return np.array(cm2lbl[idx])
-
-
-def dict_to_tf_example(data, label):
+def dict_to_tf_example(data, sentense):
     with open(data, 'rb') as inf:
         encoded_data = inf.read()
-    img_label = cv2.imread(data)
-    ##img_mask = image2label(img_label)
-    ##encoded_label = img_mask.astype(np.uint8).tobytes()
+    img = cv2.imread(data)
+    ##img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
+    ##img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    ##img = img / 255
+    ##img = img.astype(np.float32)
 
-    height, width = img_label.shape[0], img_label.shape[1]
-    if height < vgg_16.default_image_size or width < vgg_16.default_image_size:
-        # 保证最后随机裁剪的尺寸
-        return None
+    height, width = img.shape[0], img.shape[1]
+    ##if height < vgg_16.default_image_size or width < vgg_16.default_image_size:
+    ##    # 保证最后随机裁剪的尺寸
+    ##    return None
 
+#    print (sentense.tostring())
+#    print (type(sentense.tostring()))
+    
     # Your code here, fill the dict
     feature_dict = {
         'image/height': _int64_feature(height),
         'image/width': _int64_feature(width),
         'image/filename': _bytes_feature(data.encode('utf8')),
         'image/encoded': _bytes_feature(encoded_data),
-        'image/label': _bytes_feature(label.encode('utf8')),
+        'image/label': _bytes_feature(sentense.tostring()),
         'image/format': _bytes_feature('jpeg'.encode('utf8')),
     }
     example = tf.train.Example(features=tf.train.Features(feature=feature_dict))
@@ -90,7 +73,6 @@ def _bytes_feature(value):
   """Wrapper for inserting bytes features into Example proto."""
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-
 def create_tf_record(output_filename, file_list, file_pars):
 
   writer = tf.python_io.TFRecordWriter(output_filename)
@@ -98,26 +80,28 @@ def create_tf_record(output_filename, file_list, file_pars):
   idx = 0
   discard = 0
   used = 0
-  for data, label in file_pars:
-    if idx % 500 == 0:
+
+  print(len(file_pars))
+  for idx in range( len(file_pars) ):
+    if idx % 10000 == 0:
       print ("dispose data index=%d" % (idx))
-      
-    idx += 1
+
+    data = file_pars[idx][0]
+    label = file_pars[idx][1]
     #  logging.info('On image %d of %d', idx, len(file_pars))
     #  print ("on image:%s with label:%s" % (data, label) )
 
-    #if not os.path.exists(data):
-    #  logging.warning('Could not find %s, ignoring example data.', xml_path)
-    #  continue
-    #
-    #if not os.path.exists(label):
-    #  logging.warning('Could not find %s, ignoring example label.', xml_path)
-    #  continue
+    if not os.path.exists(data):
+      logging.warning('Could not find %s, ignoring example data.', data)
+      continue
+
     if (data not in file_list):
         continue
-
+    
+    word_indexs = index_data(label)
+    #word_indexs = label
     try:
-      tf_example = dict_to_tf_example(data, label)
+      tf_example = dict_to_tf_example(data, word_indexs)
       if (tf_example != None):
         writer.write(tf_example.SerializeToString())
         used += 1
@@ -140,8 +124,12 @@ def read_token_files(root):
             line = each.split('\t')
             data.append('%s/data_Flickr8k/Flickr8k_Dataset/%s' % (root, line[0][:-2]))
             label.append(line[1][:-1])
-    
-    return zip(data, label)
+            
+            label_len = len(line[1][:-1].split())
+            while label_len > FLAGS.label_length:
+                FLAGS.label_length = FLAGS.label_length * 2
+
+    return list(zip(data, label))
 
 def read_images_names(root, type='train'):
     txt_fname = ''
@@ -151,40 +139,60 @@ def read_images_names(root, type='train'):
         txt_fname = os.path.join(root, 'data_Flickr8k/', 'Flickr_8k.testImages.txt')
     if type == 'val':
         txt_fname = os.path.join(root, 'data_Flickr8k/', 'Flickr_8k.devImages.txt')
-
+    if type == 'one':
+        txt_fname = os.path.join(root, 'data_Flickr8k/', 'Flickr_8k.oneImages.txt')
+        
     images = []
     with open(txt_fname, 'r') as f:
         for each in f:
             images.append('%s/data_Flickr8k/Flickr8k_Dataset/%s' % (root, each[:-1]))
 
     return images
+
+def index_data(label):
+    with open(FLAGS.json_dictionary, encoding='utf-8') as inf:
+        dictionary = json.load(inf, encoding='utf-8')
+
+        words = label.split()
+#        shape = words.shape
+#        words = words.reshape([-1])
+        index = [dictionary['UNK']] * FLAGS.label_length
+        for i in range(len(words)):
+            try:
+                index[i] = dictionary[words[i]]
+            except KeyError:
+                index[i] = dictionary['UNK']
+
+        return np.array(index)
     
-    ##data = []
-    ##label = []
-    ##for fname in images:
-    ##    data.append('%s/JPEGImages/%s.jpg' % (root, fname))
-    ##    label.append('%s/SegmentationClass/%s.png' % (root, fname))
-    ##return zip(data, label)
+    return None
+
+#        return index.reshape(shape)
 
 
 def main(_):
     logging.info('Prepare dataset file names')
-
-    train_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_train.record')
-    val_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_val.record')
-    test_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_test.record')
-
-    train_files = read_images_names(FLAGS.data_dir, 'train')
-    val_files = read_images_names(FLAGS.data_dir, 'val')
-    test_files = read_images_names(FLAGS.data_dir, 'test')
-
+    
     token_files = read_token_files(FLAGS.data_dir)
+    
+    ## generate one tfrecord for debug
+    test_files = read_images_names(FLAGS.data_dir, 'one')
+    test_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_train_one.record')
+    create_tf_record(test_output_path, test_files, token_files)
+
+    ## generate train tfrecord
+    train_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_train.record')
+    train_files = read_images_names(FLAGS.data_dir, 'train')
     create_tf_record(train_output_path, train_files, token_files)
 
-    token_files = read_token_files(FLAGS.data_dir)
+    ## generate validate tfrecord
+    val_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_val.record')
+    val_files = read_images_names(FLAGS.data_dir, 'val')
     create_tf_record(val_output_path, val_files, token_files)
 
-    token_files = read_token_files(FLAGS.data_dir)
+    ## generate test tfrecord
+    test_files = read_images_names(FLAGS.data_dir, 'test')
+    test_output_path = os.path.join(FLAGS.output_dir, 'flickr8k_test.record')
     create_tf_record(test_output_path, test_files, token_files)
 
 

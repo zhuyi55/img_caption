@@ -48,17 +48,17 @@ def parse_args(check=True):
 #    parser.add_argument('--learning_rate', type=float, default=0.001,
 #                        help='learning rate')
 
-    parser.add_argument('--checkpoint_path', type=str)
+    parser.add_argument('--checkpoint_path', type=str, default='./data/vgg_16.ckpt')
     
 #    parser.add_argument('--output_dir', type=str)
-    parser.add_argument('--dataset_train', type=str, default='./flickr8k_train_one.record')
+    parser.add_argument('--dataset_train', type=str, default='./flickr8k_train.record')
     
-    parser.add_argument('--dataset_val', type=str, default='flickr8k_train_one.record')
+    parser.add_argument('--dataset_val', type=str, default='flickr8k_val.record')
     
     parser.add_argument('--dataset_test', type=str, default='flickr8k_test.record')
     
 #    parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--max_steps', type=int, default=1500)
+    parser.add_argument('--max_steps', type=int, default=40000)
     
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     
