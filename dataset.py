@@ -8,7 +8,7 @@ import time
 import tensorflow as tf
 import os
 
-from utils import (_B_MEAN, _G_MEAN, _R_MEAN, _mean_image_subtraction)
+#from utils import (_B_MEAN, _G_MEAN, _R_MEAN, _mean_image_subtraction)
 
 
 # 图片信息
