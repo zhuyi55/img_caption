@@ -72,7 +72,7 @@ def read_data(filename):
   
   return data
 
-vocabulary = read_data('./data_Flickr8k/Flickr8k.token.txt')
+vocabulary = read_data('./Flickr8k.lemma.token.txt')
 print('Data size', len(vocabulary))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.

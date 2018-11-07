@@ -12,7 +12,7 @@ import os
 
 
 # 图片信息
-NUM_CLASSES = 128
+#NUM_CLASSES = 128
 
 def read_and_decode(filename_queue):
     reader = tf.TFRecordReader()
