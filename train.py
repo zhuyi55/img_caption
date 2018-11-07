@@ -253,12 +253,10 @@ with sess:
 
     start = time.time()
     for i in range(FLAGS.max_steps):
-        gs, _, state, l, summary_string, lista, listb = sess.run(
-            [global_step, optimizer, state_tensor, loss, merged_summary_op, image_tensor, label_tensor], feed_dict=feed_dict_to_use)
+        gs, _, state, l, summary_string = sess.run(
+            [global_step, optimizer, state_tensor, loss, merged_summary_op], feed_dict=feed_dict_to_use)
         summary_string_writer.add_summary(summary_string, gs)
 
-        print (lista)
-        print (listb)
         if gs % 1 == 0:
             logging.debug('step [{0}] loss [{1}]'.format(gs, l))
         if gs % 5 == 0:
