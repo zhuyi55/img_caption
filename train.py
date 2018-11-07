@@ -9,7 +9,6 @@ import numpy as np
 import tensorflow as tf
 import vgg
 
-from model import Model
 from dataset import inputs, read_and_decode
 
 from flags import parse_args
