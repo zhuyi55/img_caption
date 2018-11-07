@@ -5,7 +5,7 @@
 
 _第一周_
 ### 数据准备
-##### 数据下载
+#### 数据下载
 ````
  flickr8k下载地址:
  http://nlp.cs.illinois.edu/HockenmaierGroup/Framing_Image_Description/Flickr8k_Dataset.zip
@@ -17,9 +17,9 @@ http://images.cocodataset.org/zips/train2014.zip
 http://images.cocodataset.org/zips/val2014.zip
 http://images.cocodataset.org/annotations/annotations_trainval2014.zip
 ````
-##### 数据格式的理解
-- flickr8k
- - 原始数据结构如下
+#### 数据格式的理解
+##### flickr8k
+- 原始数据结构如下
   ````
     + Flickr8k_Dataset                    <图片数据，共8000多张图片>
     + Flickr8k_text
@@ -31,7 +31,7 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
       - Flickr8k.lemma.token.txt          <对文字作了 lemmatized 处理>
       - Flickr8k.token.txt                <图片及对应的ground truth>
   ````
- - Lemmatized含义说明
+- Lemmatized含义说明
  ```
  <raw caption>
  Two motorists are riding along on their vehicle that is oddly designed and colored .
@@ -46,13 +46,13 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
    - 对caption需要进行word embedding预处理，并转换成对应的int类型的值，作为模型的输入。
    - 发现部分caption结尾没有句号'.'，在对数据进行预处理时可以考虑加上。
    - lemmatized后数据的有效单词数为2471，原始数据的有效单词为3081。考虑到word embedding已经起到了一定的降维和相似词整合的功能，lemmatized的作用应该不会太明显。且有效单词数量差并不明显(处于一个数量级内)。因此考虑使用原始caption作为输入数据处理。
-- coco
+##### coco
 ```
 TODO
 ```
-- 资料查阅
-  - 1411.4555论文
-   - 采用CNN+RNN串联的方式，将CNN的输出作为RNN的第一个输入值
+##### 资料查阅
+- 1411.4555论文
+     - 采用CNN+RNN串联的方式，将CNN的输出作为RNN的第一个输入值
    ![embedding](NIC.png)
    - word embedding大小为512
    - 选择词频大于5的单词
@@ -62,22 +62,22 @@ TODO
    ````
 
 ### 项目方案规划
-##### 模型规划
+#### 模型规划
 - CNN模型部分
- - 现有成熟的CNN网络模型较多，可供选择的也比较多。如Inception, ResNet, VGG, NasNet等
+  - 现有成熟的CNN网络模型较多，可供选择的也比较多。如Inception, ResNet, VGG, NasNet等
  ```
  TODO
  如何选择CNN模型...
  ```
 - RNN模型部分
- - 采用LSTM长短期记忆网络模型。
- - 隐层个数为rnn_layers
- - num_steps个数根据输入caption的长度动态变化。
- - 输入及隐层的特征数与Word Embedding的维度一致，与CNN层的logit输出维度也一致。
- - 输出维度为有效单词数量，在预处理word embedding的过程中确定。使用不同数据集时会有不同的值。
- - batch size 在实际训练过程中调整。
+  - 采用LSTM长短期记忆网络模型。
+  - 隐层个数为rnn_layers
+  - num_steps个数根据输入caption的长度动态变化。
+  - 输入及隐层的特征数与Word Embedding的维度一致，与CNN层的logit输出维度也一致。
+  - 输出维度为有效单词数量，在预处理word embedding的过程中确定。使用不同数据集时会有不同的值。
+  - batch size 在实际训练过程中调整。
 
-##### 系统规划-TODO
+#### 系统规划-TODO
 - 系统架构
 - 输入输出
 - 结果展示或分析
