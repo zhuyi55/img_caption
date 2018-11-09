@@ -1,5 +1,5 @@
 ## 看图说话项目节点报告
-- _小组成员：李雨阳，朱怡，臣生_
+- _小组成员：李雨阳，朱怡，张臣生_
 
 
 
@@ -31,7 +31,7 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
       - Flickr8k.lemma.token.txt          <对文字作了 lemmatized 处理>
       - Flickr8k.token.txt                <图片及对应的ground truth>
   ````
-- Lemmatized含义说明
+- Lemmatized含义理解
   ```
   <raw caption>
   Two motorists are riding along on their vehicle that is oddly designed and colored .
@@ -40,7 +40,7 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
   <lemmatized caption>
   Two motorist be ride along on their vehicle that be oddly design and color .
   ```
- - 数据格式理解及分析
+- 数据格式理解及分析
    - 图片需要转换成指定大小传入。
    - 由于图片切割后和原有的groud truth未必会对应，在数据预处理时不考虑对图片进行切割。
    - 对caption需要进行word embedding预处理，并转换成对应的int类型的值，作为模型的输入。
@@ -51,12 +51,13 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
 ##### coco
 - coco数据集目前尚未使用。
 
-##### 资料查阅
+### 资料查阅
 - 1411.4555论文
      - 采用CNN+RNN串联的方式，将CNN的输出作为RNN的第一个输入值
    ![embedding](NIC.png)
+
    - word embedding大小为512
-   - 选择词频大于5的单词
+   - 要求对描述语句进行'tokenization'的预处理，我们理解为仅仅只是断词，并不需要lemmatized。但需要选择词频大于5的单词参与训练。
    - cnn有预训练模型，rnn参数从0初始化。为防止cnn预训练模型被带偏，在初始训练时需要固定cnn参数，仅训练rnn。
    后期再一起参与训练。
    - 论文中没有提到具体cnn采用了哪种模型，现有的成熟模型都可以纳入考虑。
@@ -76,6 +77,8 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
   - 输入及隐层的特征数与Word Embedding的维度一致，与CNN层的logit输出维度也一致。
   - 输出维度为有效单词数量，在预处理word embedding的过程中确定。使用不同数据集时会有不同的值。
   - batch size 在实际训练过程中调整。
+- loss计算
+  - 论文中采用的是分别计算每个词的loss并求和。但我们考虑到每句话单词数量各不相同(num_step)，会大概率导致长语句的loss偏大。会采用loss平均值来计算。
 
 #### 系统规划
 - 系统架构
