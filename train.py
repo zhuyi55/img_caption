@@ -10,6 +10,7 @@ import tensorflow as tf
 import vgg
 
 from dataset import inputs, read_and_decode
+from rnn_model import RNN_Model
 
 from flags import parse_args
 FLAGS, unparsed = parse_args()
@@ -26,10 +27,8 @@ image_tensor_train, label_tensor_train = inputs(FLAGS.dataset_train, train=True,
 image_tensor_val, label_tensor_val = inputs(FLAGS.dataset_val, train=False, num_epochs=1e4)
 
 image_tensor, label_tensor = tf.cond(is_training_placeholder,
-                                                           true_fn=lambda: (image_tensor_train, label_tensor_train),
-                                                           false_fn=lambda: (image_tensor_val, label_tensor_val))
-
-feed_dict_to_use = {is_training_placeholder: True}
+                                     true_fn=lambda: (image_tensor_train, label_tensor_train),
+                                     false_fn=lambda: (image_tensor_val, label_tensor_val))
 
 log_folder = FLAGS.output_dir
 #log_folder = os.path.join(FLAGS.output_dir, 'train')
@@ -49,75 +48,76 @@ with slim.arg_scope(vgg.vgg_arg_scope()):
                                     fc_conv_padding='VALID')
 
 logits_shape = tf.shape(cnn_logits)
+data_x0 = tf.reshape(cnn_logits, [1, 1, FLAGS.dim_embedding])
 
 #img_shape = tf.shape(image_tensor)
-
-##model = Model(learning_rate=FLAGS.learning_rate, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps)
-##model.build(FLAGS.embedding_file)
-
-with tf.variable_scope('embedding'):
-    if FLAGS.embedding_file:
-        # if embedding file provided, use it.
-        embedding = np.load(FLAGS.embedding_file)
-        embed = tf.constant(embedding, name='embedding')
-    else:
-        # if not, initialize an embedding and train it.
-        print ('no embedding file.!')
-        embed = tf.get_variable(
-            'embedding', [FLAGS.num_words, FLAGS.dim_embedding])
-        tf.summary.histogram('embed', embed)
-
-    data = tf.nn.embedding_lookup(embed, label_tensor)
-
-    data_x0 = tf.reshape(cnn_logits, [1, 1, FLAGS.dim_embedding])
-
-    rnn_Y = label_tensor
-    label_shape = tf.shape(label_tensor)
-    
-    concat_Data = tf.concat([data, data_x0], 1)
-    _, rnn_X = tf.split(concat_Data, [1, -1], 1)
-
 with tf.variable_scope('rnn'):
-    basic_cell = tf.nn.rnn_cell.BasicLSTMCell(FLAGS.dim_embedding)
-    drop_cell = tf.nn.rnn_cell.DropoutWrapper(basic_cell, input_keep_prob=FLAGS.keep_prob, output_keep_prob=1.0)
-    mult_cell = tf.nn.rnn_cell.MultiRNNCell([drop_cell] * FLAGS.rnn_layers)
-    
-    state_tensor = mult_cell.zero_state(FLAGS.batch_size, tf.float32)
-    seq_output, state_tensor = tf.nn.dynamic_rnn(mult_cell, rnn_X, initial_state=state_tensor)
-
-    # flatten it
-    seq_output_final = tf.reshape(seq_output, [-1, FLAGS.dim_embedding])
-    
-    with tf.variable_scope('softmax'):
-        W_o = tf.get_variable('W_o', [FLAGS.dim_embedding, FLAGS.num_words], initializer=tf.random_normal_initializer(stddev=0.01))
-        b_o = tf.get_variable('b_o', [FLAGS.num_words], initializer=tf.constant_initializer(0.0))
-        
-        rnn_logits = tf.reshape(tf.matmul(seq_output_final, W_o) + b_o, [-1, label_shape[1], FLAGS.num_words])
-        
-    tf.summary.histogram('rnn_logits', rnn_logits)
-    
-    predictions = tf.nn.softmax(rnn_logits, name='predictions')
-    
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=rnn_Y, logits = rnn_logits)
-    mean, var = tf.nn.moments(rnn_logits, -1)
-    loss = tf.reduce_mean(loss)
-    tf.summary.scalar('logits_loss', loss)
-    
-    var_loss = tf.divide(10.0, 1.0+tf.reduce_mean(var))
-    tf.summary.scalar('var_loss', var_loss)
-    # 把标准差作为loss添加到最终的loss里面，避免网络每次输出的语句都是机械的重复
-    loss = loss + var_loss
-    tf.summary.scalar('total_loss', loss)
-
-with tf.variable_scope('adam_vars'):
-    # gradient clip
-    tvars = tf.trainable_variables()
-    grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars), 5)
-    train_op = tf.train.AdamOptimizer(FLAGS.learning_rate)
-    optimizer = train_op.apply_gradients(
-        zip(grads, tvars), global_step=global_step)
-
-merged_summary_op = tf.summary.merge_all()
+    rnn_m = RNN_Model(data_x0, label_tensor)
+    rnn_m.convert()
+    rnn_m.build()
+#with tf.variable_scope('embedding'):
+#    if FLAGS.embedding_file:
+#        # if embedding file provided, use it.
+#        embedding = np.load(FLAGS.embedding_file)
+#        embed = tf.constant(embedding, name='embedding')
+#    else:
+#        # if not, initialize an embedding and train it.
+#        print ('no embedding file.!')
+#        embed = tf.get_variable(
+#            'embedding', [FLAGS.num_words, FLAGS.dim_embedding])
+#        tf.summary.histogram('embed', embed)
+#
+#    data = tf.nn.embedding_lookup(embed, label_tensor)
+#
+#    data_x0 = tf.reshape(cnn_logits, [1, 1, FLAGS.dim_embedding])
+#
+#    rnn_Y = label_tensor
+#    label_shape = tf.shape(label_tensor)
+#    
+#    concat_Data = tf.concat([data_x0, data], 1)
+#    _, rnn_X = tf.split(concat_Data, [1, -1], 1)
+#
+#with tf.variable_scope('rnn'):
+#    basic_cell = tf.nn.rnn_cell.BasicLSTMCell(FLAGS.dim_embedding)
+#    drop_cell = tf.nn.rnn_cell.DropoutWrapper(basic_cell, input_keep_prob=FLAGS.keep_prob, output_keep_prob=1.0)
+#    mult_cell = tf.nn.rnn_cell.MultiRNNCell([drop_cell] * FLAGS.rnn_layers)
+#    
+#    state_tensor = mult_cell.zero_state(FLAGS.batch_size, tf.float32)
+#    seq_output, state_tensor = tf.nn.dynamic_rnn(mult_cell, rnn_X, initial_state=state_tensor)
+#
+#    # flatten it
+#    seq_output_final = tf.reshape(seq_output, [-1, FLAGS.dim_embedding])
+#    
+#    with tf.variable_scope('softmax'):
+#        W_o = tf.get_variable('W_o', [FLAGS.dim_embedding, FLAGS.num_words], initializer=tf.random_normal_initializer(stddev=0.01))
+#        b_o = tf.get_variable('b_o', [FLAGS.num_words], initializer=tf.constant_initializer(0.0))
+#        
+#        rnn_logits = tf.reshape(tf.matmul(seq_output_final, W_o) + b_o, [-1, label_shape[1], FLAGS.num_words])
+#        
+#    tf.summary.histogram('rnn_logits', rnn_logits)
+#    
+#    predictions = tf.nn.softmax(rnn_logits, name='predictions')
+#    
+#    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=rnn_Y, logits = rnn_logits)
+#    mean, var = tf.nn.moments(rnn_logits, -1)
+#    loss = tf.reduce_mean(loss)
+#    tf.summary.scalar('logits_loss', loss)
+#    
+#    var_loss = tf.divide(10.0, 1.0+tf.reduce_mean(var))
+#    tf.summary.scalar('var_loss', var_loss)
+#    # 把标准差作为loss添加到最终的loss里面，避免网络每次输出的语句都是机械的重复
+#    loss = loss + var_loss
+#    tf.summary.scalar('total_loss', loss)
+#
+#with tf.variable_scope('adam_vars'):
+#    # gradient clip
+#    tvars = tf.trainable_variables()
+#    grads, _ = tf.clip_by_global_norm(tf.gradients(loss, tvars), 5)
+#    train_op = tf.train.AdamOptimizer(FLAGS.learning_rate)
+#    optimizer = train_op.apply_gradients(
+#        zip(grads, tvars), global_step=global_step)
+#
+#merged_summary_op = tf.summary.merge_all()
 
 #lbl_onehot = tf.one_hot(annotation_tensor, number_of_classes)
 #cross_entropies = tf.nn.softmax_cross_entropy_with_logits(logits=logits,
@@ -253,13 +253,17 @@ with sess:
 
     start = time.time()
     for i in range(FLAGS.max_steps):
-        gs, _, state, l, summary_string = sess.run(
-            [global_step, optimizer, state_tensor, loss, merged_summary_op], feed_dict=feed_dict_to_use)
+        feed_dict_to_use = {is_training_placeholder: True,
+                            rnn_m.keep_prob: 1.0
+                            }
+
+        gs, _, state, l, summary_string, lb = sess.run(
+            [rnn_m.global_step, rnn_m.optimizer, rnn_m.state_tensor, rnn_m.loss, rnn_m.merged_summary_op, rnn_m.num_steps], feed_dict=feed_dict_to_use)
         summary_string_writer.add_summary(summary_string, gs)
 
-        if gs % 1 == 0:
+        if gs % 10 == 0:
             logging.debug('step [{0}] loss [{1}]'.format(gs, l))
-        if gs % 5 == 0:
+        if gs % 500 == 0:
             save_path = saver.save(sess, os.path.join(FLAGS.output_dir, "model.ckpt"), global_step=gs)
             logging.debug("Model saved in file: %s" % save_path)
 
