@@ -19,7 +19,7 @@ slim = tf.contrib.slim
 logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s', level=logging.DEBUG)
 
-filename = r'./2513260012_03d33305cf.jpg'
+filename = r'/tinysrc/2513260012_03d33305cf.jpg'
 
 is_training_placeholder = tf.placeholder(tf.bool)
 
