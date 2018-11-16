@@ -8,10 +8,10 @@ _第二周_
 - 参考im2txt对coco数据集的处理，修改了数据训练代码
 ### 模型训练
 - #### 训练过程出现的问题以及解决
-  - 训练num_steps的选择。由于flickr8k训练集的大小约为coco的1/20，最初想法mun_steps也为1/20，50000步。实际训练过程中约2w步后基本无衰减，我们便停止了训练。
+  - 训练num_steps的选择。由于flickr8k训练集的大小约为coco的1/20，最初想法mun_steps也为1/20，50000步。实际训练过程中约1w多步后基本无衰减，我们便停止了训练。
     - ![embedding](2-4.png)
 
-    - ![embedding](2-5.jpg)
+    - ![embedding](2-5.png)
   - 由于summary没有定义，Tensorboard上没有输出。我们通过了xxxxx方法，生成了loss曲线。
 - #### 训练过程可视化
   - loss可视化
