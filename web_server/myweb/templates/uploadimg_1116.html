@@ -1,0 +1,83 @@
+<html> 
+<head> 
+<script type="text/javascript"> 
+	function getFileUrl(sourceId) { 
+		var url; 
+		if (navigator.userAgent.indexOf("MSIE")>=1) { // IE 
+		url = document.getElementById(sourceId).value; 
+	} 
+		else if(navigator.userAgent.indexOf("Firefox")>0) { // Firefox 
+		url = window.URL.createObjectURL(document.getElementById(sourceId).files.item(0)); 
+	} 
+		else if(navigator.userAgent.indexOf("Chrome")>0) { // Chrome 
+		url = window.URL.createObjectURL(document.getElementById(sourceId).files.item(0)); 
+	} 
+		return url; 
+	}
+	function preImg(sourceId, targetId) { 
+		var url = getFileUrl(sourceId); 
+		var imgPre = document.getElementById(targetId); 
+		imgPre.src = url; 
+	} 
+</script> 
+
+</head> 
+
+<form method="POST" enctype="multipart/form-data">
+{% csrf_token %}
+{% load staticfiles %} 
+<p><input type="file" name="img" id='img1' onchange="preImg(this.id,'imgView')"></p>
+<p><button type="submit" onclick="waiting()">分析</button></p>
+<p><img id="imgView" src="" style="display: block;" /> </p>
+<p><img id="imgView2" src="{% static imgView %}" hidden="hidden"></p>
+<p id="demo"></p>
+<p id="res1"></p>
+<p id="res2"></p>
+
+<script type="text/javascript">
+	function getFileUrl(sourceId) { 
+		var url; 
+		if (navigator.userAgent.indexOf("MSIE")>=1) { // IE 
+		url = document.getElementById(sourceId).value; 
+	} 
+		else if(navigator.userAgent.indexOf("Firefox")>0) { // Firefox 
+		url = window.URL.createObjectURL(document.getElementById(sourceId).files.item(0)); 
+	} 
+		else if(navigator.userAgent.indexOf("Chrome")>0) { // Chrome 
+		url = window.URL.createObjectURL(document.getElementById(sourceId).files.item(0)); 
+	} 
+		return url; 
+	}
+
+   function waiting() {
+      document.getElementById("demo").innerHTML="计算中...."
+      var url = getFileUrl('img1'); 
+      var imgPre = document.getElementById('imgView'); 
+      //imgPre.src = url; 
+      document.getElementById("imgView2").style.display="none";
+   }
+   
+   function preImg(i, v) {
+      var url = getFileUrl(i); 
+      var view = document.getElementById(v); 
+      view.src = url
+      document.getElementById("imgView2").style.display="none";
+   }
+      
+</script>
+
+<script type="text/javascript"> 
+   var result1 = {{ result1|safe }};
+   var result2 = {{ result2|safe }};
+   document.getElementById("demo").innerHTML="预测结果：";
+   document.getElementById("res1").innerHTML=result1;
+   document.getElementById("res2").innerHTML=result2;
+   
+   document.getElementById("imgView2").style.display="inline";
+   
+</script> 
+
+</form>
+
+
+</html> 
