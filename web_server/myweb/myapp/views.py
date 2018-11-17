@@ -5,6 +5,7 @@ from PIL import Image
 import os
 from io import BytesIO
 import sample2
+import im2txt.run_inference_api as imModel
 import json
 
 class Images(models.Model):
@@ -28,7 +29,11 @@ def uploadImg(request):
             fobj.write(chrunk);
         fobj.close();
         
-        strlist = sample2.prediction()
+        chkpoint_path = os.path.join(baseDir, 'im_model')
+        vocab = os.path.join(chkpoint_path, 'word_counts.txt')
+        
+        strlist = imModel.function(checkpoint_path=chkpoint_path, vocab_file=vocab, input_files=filename)
+        #strlist = sample2.prediction()
         #im_pic = Image.open(BytesIO(img))
         #im_pic.save(filename)
         content = {
