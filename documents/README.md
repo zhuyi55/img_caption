@@ -15,7 +15,7 @@ _第二周_
 - #### 训练过程出现的问题以及解决
   - 训练num_steps的选择。由于flickr8k训练集的大小约为coco的1/20，我们想法是mun_steps也为50000步。
   - ![embedding](pic/2-9.png)
-  
+
   - ![embedding](pic/2-8.png)
   - 设置train_inception=true，继续训练10000步
   - ![embedding](pic/2-10.png)
@@ -33,6 +33,8 @@ _第二周_
   - 提高生成语句的准确率，方法包括:
     - 更换数据集
     - 更换cnn模型
+    - 增加训练步数num_steps
+    - 调用训练过模型的checkpoint
   - 对界面异常情况进行处理，如
     - 选择非图片文件
     - 未选择文件直接点击分析
