@@ -20,6 +20,8 @@ _第二周_
   - 设置train_inception=true，继续训练10000步
   - ![embedding](pic/2-10.png)
 
+  - 遇到了训练好的checkpoint在本地无法调用的问题。后来发现需要checkpoint文件，并修改文件中ckpt的相对路径后成功加载恢复。
+
 ### 可用系统的搭建
   - 系统可以运行起来，如图所示
     - ![embedding](pic/2-1.png)
