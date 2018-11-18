@@ -26,7 +26,7 @@
 <form method="POST" enctype="multipart/form-data">
 {% csrf_token %}
 {% load staticfiles %} 
-<p><input type="file" name="img" id='img1' onchange="preImg(this.id,'imgView')"></p>
+<p><input type="file" name="img" id='img1' multiple='multiple' accept=".jpg,.jpeg,.gif,.png" onchange="preImg(this.id,'imgView')" ></p>
 <p><button type="submit" onclick="waiting()">分析</button></p>
 <p><img id="imgView" src="" style="display: block;" /> </p>
 <p><img id="imgView2" src="{% static imgView %}" hidden="hidden"></p>
@@ -87,8 +87,8 @@
    var result1 = {{ result1|safe }};
    var result2 = {{ result2|safe }};
    document.getElementById("demo").innerHTML="预测结果：";
-   document.getElementById("res1").innerHTML=result1;
-   document.getElementById("res2").innerHTML=result2;
+   document.getElementById("res1").innerHTML=result1[0];
+   document.getElementById("res2").innerHTML=result2[0];
    
    document.getElementById("fb1").style.display="inline";
    document.getElementById("fb2").style.display="inline";
