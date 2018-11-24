@@ -141,18 +141,94 @@ ____
 
 
 
+_第三周_
+### 模型训练完成
+- 训练了InceptionV3， InceptionV4， InceptionResnetV2共三个模型。
+- 采用的数据集: __Flickr8k__
+- 三个模型的对比分析如下：
 
+  ##### 学习率 Learning_rate
+- 三个模型采用一样的学习率
+- 前10w步学习率根据epoch，学习率从2开始递减
+- 10w步以后固定为0.0005
+- ![embedding](pic/3-learn_rate.png)
 
-### 第三周结束目标
-- 模型训练完成
-  - 结果可视化
-  - 效果分析
-- 系统搭建完成
+  ##### 模型训练时间 step/sec
+- InceptionV3
+- ![embedding](pic/3-v3-step_sec.png)
+- InceptionV4
+- ![embedding](pic/3-v4-step_sec.png)
+- InceptionResnetV2
+- ![embedding](pic/3-v2-step_sec.png)
+- 从训练时间上来看
+  - cnn不训练： InceptionV3 > InceptionResnetV2 > InceptionV4
+  - cnn训练后： InceptionV3 > InceptionResnetV2 ≈ InceptionV4
+  - 这个速度也符合对这三个模型设计上的定义：
+    - InceptionV4比InceptionV3深度更深，因此在训练和计算上都花费了更多的时间。
+    - IncpetionResnetV2优化了InceptionV4的训练速度，因此速度较InceptionV4较快。
+
+  ##### batch_loss
+- InceptionV3 （处于1.7-1.9的区间范围内）
+- ![embedding](pic/3-v3-batch_loss.png)
+- InceptionV4 （处于1.6-2.0的区间范围内）
+- ![embedding](pic/3-v4-batch_loss.png)
+- InceptionResnetV2 （处于1.3-1.8的区间范围内）
+- ![embedding](pic/3-v2-batch_loss.png)
+- 训练过程中batch_size值为16
+- 从batch_loss值的大小来看：InceptionResnetV2 < InceptionV3 < InceptionV4
+- 从batch_loss值的震荡范围来看： InceptionV3 < InceptionV4 < InceptionResnetV2
+- 由此分析推断，整体生成效果上：InceptionResneV2会好于其他两个模型；但对于某些特定的输入，输入结果可能存在较大的差异，不如InceptionV3输出的结果稳定。
+
+##### total_loss
+- InceptionV3 （处于1.8-2.0的区间范围内）
+- ![embedding](pic/3-v3-total_loss.png)
+- InceptionV4 （处于2.0-2.4的区间范围内）
+- ![embedding](pic/3-v4-total_loss.png)
+- InceptionResnetV2 （处于1.7-2.2的区间范围内）
+- ![embedding](pic/3-v2-total_loss.png)
+- 整体情况与batch_loss类似。
+- InceptionV3的变化范围更小
+- InceptionResnetV2收敛后的loss值更小，但浮动较大。
+
+##### 效果分析
+- 由于flickr8k原本的数据集就比较小，参照词频表对效果进行了一些分析：
+- __flickr8k测试集效果测试__
+  - 数据集中出现最多的名字为"_dog_"，共出现了__6158__次
+  - ![embedding](pic/sample1.png)
+  - ![embedding](pic/sample5.png)
+  - 对dog的识别相当准确，dog身上的毛发颜色识别的也不错。动作描述略有差别，InceptionResnetV2模型稍好一些。
+  - ![embedding](pic/sample6.png)
+  - 这张图三个模型识别的差别相当明显。InceptionV4的语句略短，且没有识别出court dribbling，衣服颜色等关键词。
+  - 只有InceptionResnetV2模型识别出了dribbling这个动作。这个词在词频表里出现的次数仅5次。说明InceptionResnetV2模型对低频词的学习和使用较为频繁。另一个类似的例子是：
+  - ![embedding](pic/sample3.png)
+  - 这里使用petting更为准确。但InceptionResnetV2模型多次使用了tug of war 这个冷僻的词组结构。它在训练集中仅仅出现过__2__次。
+- __范围外的图像效果测试__
+  - ![embedding](pic/sample2.png)
+  - 由于词组表中没有zebra，导致测试结果惨不忍睹。
+  - 结果中出现的man/woman/boy/girl/child都是词频表中出现次数最多的一些名词（2000-5000次）
+  - 唯一欣慰的是InceptionResnetV2中出现了horse这个单词。他在词频表里出现了169次。
+- __网络图片效果测试__
+  - ![embedding](pic/sample8.png)
+  - 词库中关于雪的出现的次数比较多，网上找了一些雪景的图片测试，效果还不错。
+  - ![embedding](pic/sample9.png)
+  - 对于高频词的处理InceptionResnetV2表现并不太好。如上例中，对man/woman的区分并不明显，语句也并不通顺。反而InceptionV4表达的意思更准确。
+
+### 系统搭建完成
   - 能运行并根据合理的输入给出合理的输出
-  - 没有明显不合理的设计
-    - 输入输出可操作
-    - 对各种异常能够处理，系统不会崩溃
-    - xxx
+    - 系统主界面
+    - ![embedding](pic/3-web-1.png)
+    - 生成结果图片，支持三种模型的结果的同时预测
+    - ![embedding](pic/sample1.png)
+  - 一些异常和故障处理
+    - 选择文件对话框对文件类型做了筛选，只能选择图片类型的文件。如jpg/jpeg/png
+    - ![embedding](pic/3-web-2.png)
+    - 对文件的最小尺寸有限制，尺寸过小会弹出提示
+    - ![embedding](pic/3-web-3.png)
+    - 直接点击提交按钮有错误提示
+    - ![embedding](pic/3-web-5.png)
+    - 计算过程中重复提交图片，会有不要重复点击提示
+    - ![embedding](pic/3-web-4.png)
+
 
 ### 第四周结束目标
 - 形成最终文档

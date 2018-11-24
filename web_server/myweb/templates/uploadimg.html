@@ -62,6 +62,14 @@
 	}
 
    function waiting() {
+      if (document.getElementById("demo").innerHTML=="计算中....") {
+         alert("正在计算中，请勿重复提交！")
+         return
+      }
+      if (document.getElementById("img1").value[0] == null) {
+         alert("未找到图片，请重新输入图片！")
+         return
+      }
       document.getElementById("demo").innerHTML="计算中...."
       var url = getFileUrl('img1'); 
       var imgPre = document.getElementById('imgView'); 
@@ -74,20 +82,40 @@
    }
    
    function preImg(i, v) {
-      var url = getFileUrl(i); 
-      var view = document.getElementById(v); 
-      view.src = url
-      view.style.height = 400
-      document.getElementById("imgView").style.display="inline";
-      document.getElementById("imgView2").style.display="none";
-      document.getElementById("demo").innerHTML="";
-      document.getElementById("res1").innerHTML="";
-      document.getElementById("res2").innerHTML="";
-      document.getElementById("fb1").style.display="none";
-      document.getElementById("fb2").style.display="none";
-      document.getElementById("fb3").style.display="none";
+      var docObj = document.getElementById(i);
+      var files = document.getElementById(i).value;
+      if (docObj.files && docObj.files[0]) {
+         var img = new Image;
+         img.onload = function(){
+            var width = img.width;
+            var height=img.height;
+            var filesize = img
+            if(width<299 || height<299){
+                alert("图片尺寸太小，最小图片限制为299*299");
+                document.getElementById(i).value=''
+            }else{
+               var url = getFileUrl(i);
+               var view = document.getElementById(v); 
+               view.src = url
+               view.style.height = 400
+               document.getElementById("imgView").style.display="inline";
+               document.getElementById("imgView2").style.display="none";
+               document.getElementById("demo").innerHTML="";
+               document.getElementById("res1").innerHTML="";
+               document.getElementById("res2").innerHTML="";
+               document.getElementById("res3").innerHTML="";
+               document.getElementById("fb1").style.display="none";
+               document.getElementById("fb2").style.display="none";
+               document.getElementById("fb3").style.display="none";
+            }
+         };
+      img.onerror=function(){
+         alert("error!");
+      };
+      img.src=window.URL.createObjectURL(docObj.files[0]);
+      }
    }
-   
+
    function getReply() {
       document.getElementById("fb1").style.display="none";
       document.getElementById("fb2").style.display="none";

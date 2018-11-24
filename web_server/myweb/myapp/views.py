@@ -41,9 +41,9 @@ def uploadImg(request):
         v2_path = os.path.join(chkpoint_path, 'v2')
         caption_generator_V2 = imModel.run_inference_api(checkpoint_path=v2_path, vocab_file=vocab, cnn_model='InceptionResnetV2')
         
-    #if (caption_generator_V3 == None):
-        #v3_path = os.path.join(chkpoint_path, 'v3')
-        #caption_generator_V3 = imModel.run_inference_api(checkpoint_path=v3_path, vocab_file=vocab, cnn_model='InceptionV3')
+    if (caption_generator_V3 == None):
+        v3_path = os.path.join(chkpoint_path, 'v3')
+        caption_generator_V3 = imModel.run_inference_api(checkpoint_path=v3_path, vocab_file=vocab, cnn_model='InceptionV3')
         
     if request.method == 'POST':
         img_name_list = []
@@ -66,8 +66,7 @@ def uploadImg(request):
                     fobj.write(chrunk);
 
             if "InceptionV3" in model_list:
-                pass
-                #strlist_V3 = caption_generator_V3.generate(filename)
+                strlist_V3 = caption_generator_V3.generate(filename)
             if "InceptionV4" in model_list:
                 strlist_V4 = caption_generator_V4.generate(filename)
             if "InceptionResnetV2" in model_list:
