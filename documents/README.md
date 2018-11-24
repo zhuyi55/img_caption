@@ -2,53 +2,6 @@
 - _小组成员：李雨阳，朱怡，张臣生_
 
 
-_第二周_
-### 训练数据处理
-- 采用的训练数据集为Flickr8k
-- 参考im2txt对coco数据集的处理，修改了数据训练代码
-- 设置train_shards=8 val_shards=1
-- ![embedding](pic/2-6.png)
-- 修改_bytes_feature函数，对图片和字符串格式分开使用了不同的函数
-- ![embedding](pic/2-7.png)
-
-### 模型训练
-- #### 训练过程出现的问题以及解决
-  - 训练num_steps的选择。由于flickr8k训练集的大小约为coco的1/20，我们想法是mun_steps也为50000步。
-  - ![embedding](pic/2-9.png)
-
-  - ![embedding](pic/2-8.png)
-  - 设置train_inception=true，继续训练10000步
-  - ![embedding](pic/2-10.png)
-
-  - 遇到了训练好的checkpoint在本地无法调用的问题。后来发现需要checkpoint文件，并修改文件中ckpt的相对路径后成功加载恢复。
-
-### 可用系统的搭建
-  - 系统可以运行起来，如图所示
-    - ![embedding](pic/2-1.png)
-  - 输入：界面提供了选择文件的按钮，选择用户本地的文件
-    - ![embedding](pic/2-3.png)
-  - 输出：分析后生成预测结果，并提供用户反馈按钮
-    - ![embedding](pic/2-2.png)
-
-### 遇到的问题及下一阶段计划
-  - 实际生成caption的过程中，计算过程稍慢，需要20-30秒左右。有没有可以提速的方法？
-  - 提高生成语句的准确率，方法包括:
-    - 更换数据集
-    - 更换cnn模型
-    - 增加训练步数num_steps
-    - 调用训练过模型的checkpoint
-  - 对界面异常情况进行处理，如
-    - 选择非图片文件
-    - 未选择文件直接点击分析
-    - 无法生成caption
-    - 增加多张图片批处理功能
-    - 可以对每句话分别评分
-  - 将用户反馈的数据加入模型训练过程，并能起到一定的影响。
-
-____
-____
-
-
 _第一周_
 ### 数据准备
 #### 数据下载
@@ -139,6 +92,52 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
 ____
 ____
 
+
+_第二周_
+### 训练数据处理
+- 采用的训练数据集为Flickr8k
+- 参考im2txt对coco数据集的处理，修改了数据训练代码
+- 设置train_shards=8 val_shards=1
+- ![embedding](pic/2-6.png)
+- 修改_bytes_feature函数，对图片和字符串格式分开使用了不同的函数
+- ![embedding](pic/2-7.png)
+
+### 模型训练
+- #### 训练过程出现的问题以及解决
+  - 训练num_steps的选择。由于flickr8k训练集的大小约为coco的1/20，我们想法是mun_steps也为50000步。
+  - ![embedding](pic/2-9.png)
+
+  - ![embedding](pic/2-8.png)
+  - 设置train_inception=true，继续训练10000步
+  - ![embedding](pic/2-10.png)
+
+  - 遇到了训练好的checkpoint在本地无法调用的问题。后来发现需要checkpoint文件，并修改文件中ckpt的相对路径后成功加载恢复。
+
+### 可用系统的搭建
+  - 系统可以运行起来，如图所示
+    - ![embedding](pic/2-1.png)
+  - 输入：界面提供了选择文件的按钮，选择用户本地的文件
+    - ![embedding](pic/2-3.png)
+  - 输出：分析后生成预测结果，并提供用户反馈按钮
+    - ![embedding](pic/2-2.png)
+
+### 遇到的问题及下一阶段计划
+  - 实际生成caption的过程中，计算过程稍慢，需要20-30秒左右。有没有可以提速的方法？
+  - 提高生成语句的准确率，方法包括:
+    - 更换数据集
+    - 更换cnn模型
+    - 增加训练步数num_steps
+    - 调用训练过模型的checkpoint
+  - 对界面异常情况进行处理，如
+    - 选择非图片文件
+    - 未选择文件直接点击分析
+    - 无法生成caption
+    - 增加多张图片批处理功能
+    - 可以对每句话分别评分
+  - 将用户反馈的数据加入模型训练过程，并能起到一定的影响。
+
+____
+____
 
 
 _第三周_
