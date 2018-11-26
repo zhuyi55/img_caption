@@ -48,7 +48,7 @@ def uploadImg(request):
     if request.method == 'POST':
         img_name_list = []
         strlist_V3 = []
-        strlist_V3 = []
+        strlist_V4 = []
         strlist_V2 = []
         
         model_list = request.POST.getlist('selMod')
