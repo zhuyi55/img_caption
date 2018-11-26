@@ -53,7 +53,7 @@ http://images.cocodataset.org/annotations/annotations_trainval2014.zip
 ### 资料查阅
 - 1411.4555论文
      - 采用CNN+RNN串联的方式，将CNN的输出作为RNN的第一个输入值
-   ![embedding](NIC.png)
+   ![embedding](pic/NIC.png)
 
    - word embedding大小为512
    - 要求对描述语句进行'tokenization'的预处理，我们理解为仅仅只是断词，并不需要lemmatized。但需要选择词频大于5的单词参与训练。
@@ -231,11 +231,46 @@ _第三周_
 
 _第四周_
 - 项目各个阶段中的坑
+  - 建模过程
+  - 数据生成
+
+
 - 心得体会
 - 项目不足与改进设想
 - 项目安装说明
   - 数据格式生成环境配置
+    - 生成mscoco tfrecord数据的脚本为 /im2txt/data/build_mscoco_data.py
+    - 命令参数说明如下
+    ````
+    python build_mscoco_data.py \
+    --train_image_dir="./train2014" \   ## 训练集图片目录
+    --val_image_dir="./val2014" \       ## 验证集图片目录
+    --train_captions_file="./captions_train2014.json" \ ## 训练集标签所在路径
+    --val_captions_file="./captions_val2014.json" \     ## 验证集标签所在路径
+    --output_dir="./outputs" \          ## 输出文件目录
+    --word_counts_output_file="./word_counts.txt"       ## 输出词频文件路径
+    ````
+    - 生成flickr8k tfrecord数据的脚本为 /im2txt/data/build_flickr8k_data.py
+    ````
+    python build_flickr8k_data.py \
+    --train_image_dir="./images" \     ## 图片集目录
+    --val_image_dir="./images" \       ## 图片集目录
+    --captions_file="./Flickr8k.token.txt" \ ## 图片标签所在路径
+    --output_dir="./outputs" \         ## 输出文件目录
+    --word_counts_output_file="./word_counts.txt"       ## 输出词频文件路径
+    ````
   - 模型训练环境配置
+    - 模型训练的脚本为 /im2txt/train.py
+    - 命令及参数说明如下
+    ````
+    train.py
+    --
+    ````
+    -
+    - configuration.py中的部分参数需要根据项目情况修改
+    `````
+    ddd
+    `````
   - web界面及后端环境配置
   - web服务器安装及配置
 - 项目使用说明
