@@ -231,45 +231,85 @@ _第三周_
 
 _第四周_
 - 项目各个阶段中的坑
-  - 建模过程
-  - 数据生成
-
-
+  - 数据建模过程
+    - flickr8k的数据集和mscoco的数据结构差别较大。mscoco采用json封装了caption的内容，而flickr8k的数据集则是简单的采用txt格式的文本。并把训练集和验证集的caption放在了一起。
+    - 在借用mscoco的tfrecord代码的时，由于编码方式的错误，导致生成了空的数据。
+  - 数据训练过程
+    - 由于模型的参数没有设置正确（如词组数量），导致在验证过程时才发现输出的词组维度与词汇表不符，之前的训练过程全部作废。
+    - 由于代码中设置了learningrate按照epoch逐渐递减的策略，但epoch设置过大，导致学习率无法递减，模型一直跑在了一个极高的学习率上。
+  - 验证生成过程
+    - 之前由于没有了解beamsearch搜索算法，导致生成的语句不够合理。以为是训练量不够的问题，试图尝试加大训练量来完成。结果当然无济于事。
+    - 尝试用BELU在验证集上比较生成的caption和原始caption的差异。
+  - 系统搭建过程
+    - 由于没有在加载网页的时候就构建模型，导致计算caption的时间特别的长。修改后端逻辑后，同时计算三个模型的caption也没有花费太多的时间。
+    -
 - 心得体会
+  - 朱怡心得：
+  ````
+  整个项目的时间比较紧，大部分工作都是在下班后和周末匆匆忙忙赶出来的。
+  开始的时候考虑了很多，但最终在很多细节上也都做得比较粗糙。
+  很多知识点，比如beam search/BELU等也都没有仔细的推敲研究，只是或囵吞枣的拿来用了。
+  所幸项目最终的展现效果自我感觉还是不错的。
+  这是第一次完整的做一个深度学习方面的项目，在之前课程的支持下，进行的倒也还算顺利。
+  反倒是为了做个网页，现学了h5/js/django，花了不少的时间。
+  比较遗憾的是由于设备所限，最终没有能在mscoco训练集上训练出一个效果较好的模型。
+  ````
+  - 张臣生心得
+  ````
+  zcs
+  ````
+  - 李雨阳心得
+  ````
+  lyy
+  ````
 - 项目不足与改进设想
+  - 对生成结果的评价不足，由于没有搞明白，所以没好意思在输出的caption上加上置信度。
+  - 由于使用了flickr8k数据集，使用的模型规模太小。总共3000个词组的模型存在着严重的过拟合情况，没有进行有效的规避。
+  - 原来设想的用户评价，反馈训练的功能没能够实现。
+  - 界面虽然元素齐全，但还是显得较为粗糙。
+
 - 项目安装说明
   - 数据格式生成环境配置
     - 生成mscoco tfrecord数据的脚本为 /im2txt/data/build_mscoco_data.py
     - 命令参数说明如下
     ````
     python build_mscoco_data.py \
-    --train_image_dir="./train2014" \   ## 训练集图片目录
-    --val_image_dir="./val2014" \       ## 验证集图片目录
+    --train_image_dir="./train2014" \                   ## 训练集图片目录
+    --val_image_dir="./val2014" \                       ## 验证集图片目录
     --train_captions_file="./captions_train2014.json" \ ## 训练集标签所在路径
     --val_captions_file="./captions_val2014.json" \     ## 验证集标签所在路径
-    --output_dir="./outputs" \          ## 输出文件目录
+    --output_dir="./outputs" \                          ## 输出文件目录
     --word_counts_output_file="./word_counts.txt"       ## 输出词频文件路径
     ````
     - 生成flickr8k tfrecord数据的脚本为 /im2txt/data/build_flickr8k_data.py
     ````
     python build_flickr8k_data.py \
-    --train_image_dir="./images" \     ## 图片集目录
-    --val_image_dir="./images" \       ## 图片集目录
+    --train_image_dir="./images" \           ## 图片集目录
+    --val_image_dir="./images" \             ## 图片集目录
     --captions_file="./Flickr8k.token.txt" \ ## 图片标签所在路径
-    --output_dir="./outputs" \         ## 输出文件目录
+    --output_dir="./outputs" \               ## 输出文件目录
     --word_counts_output_file="./word_counts.txt"       ## 输出词频文件路径
     ````
   - 模型训练环境配置
     - 模型训练的脚本为 /im2txt/train.py
     - 命令及参数说明如下
     ````
-    train.py
-    --
+    train.py \
+    --input_file_pattern='./train-?????-of-00008' \  ## 按照某个格式的tfrecord文件
+    --inception_checkpoint_file='inception_v3.ckpt'\ ## 模型的ckpt，需要与cnn_model匹配
+    --train_dir='./output' \                     ## 训练模型的输出目录
+    --train_inception='false' \                  ## 是否训练cnn模型，建议一开始为false，loss不再下降后改为true继续训练
+    --number_of_steps='100000' \                 ## 总训练步数
+    --log_every_n_steps='1' \                    ## log输出的步数
+    --cnn_model='InceptionV3'                    ## 调用的cnn模型，目前仅支持'InceptionV3', 'InceptionV4', 'InceptionResnetV2' 三种模型。
     ````
     -
-    - configuration.py中的部分参数需要根据项目情况修改
+    - configuration.py中的部分参数需要根据项目情况修改，如
     `````
-    ddd
+    self.values_per_input_shard = 3750           ## 每个shard的训练数目
+    self.vocab_size = 3000                       ## caption词汇表总数量
+    self.batch_size = 16
+    self.num_examples_per_epoch = 30000          ## 训练集数量        
     `````
   - web界面及后端环境配置
   - web服务器安装及配置
@@ -285,10 +325,9 @@ _第四周_
   ````
   - 通过一些时间的启动加载后，网页上应显示如下内容（启动加载时间取决于服务器端模型加载的速度）
   - ![embedding](pic/3-web-1.png)
-    - 选择文件按钮可以选择本地的一张图片进行看图说话的操作。建议选择图片尺寸大于299×299
+    - 选择文件按钮可以选择本地的一张图片进行看图说话的操作。建议选择图片尺寸大于299×299。
     - 三个勾选框对应三个不同的看图说话模型，建议全勾选以获得最好的生成效果。每种模型将生成3条语句。三个模型共9条。
     - 分析按钮会提交当前选择的图片信息，对该图片进行计算。计算过程中请勿重复提交。
-  - 选择文件
-  - 选择模型
-  - 结果显示
+  - 服务器计算完成后，会显示如下信息
+  - ![embedding](pic/sample1.png)
 - 使用展示视频
