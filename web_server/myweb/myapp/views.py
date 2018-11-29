@@ -6,6 +6,7 @@ import os
 from io import BytesIO
 #import sample2
 import im2txt.run_inference_api as imModel
+import myapp.translate as translate
 import json
 
 class Images(models.Model):
@@ -71,7 +72,11 @@ def uploadImg(request):
                 strlist_V4 = caption_generator_V4.generate(filename)
             if "InceptionResnetV2" in model_list:
                 strlist_V2 = caption_generator_V2.generate(filename)
-                
+            
+            for i in range(3):
+                strlist_V3[i] += "(" + translate.translate(strlist_V3[i]).replace('< UNK >', '') + ")"
+                strlist_V4[i] += "(" + translate.translate(strlist_V4[i]).replace('< UNK >', '') + ")"
+                strlist_V2[i] += "(" + translate.translate(strlist_V2[i]).replace('< UNK >', '') + ")"
             #strlist = sample2.prediction()
             img_name_list.append(img.name)
             #result1_list.append(strlist[0])
